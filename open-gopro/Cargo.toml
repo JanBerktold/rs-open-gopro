@@ -1,0 +1,8 @@
+[package]
+name = "open-gopro"
+description = "A crate to control GoPro cameras via BLE, WiFi or USB."
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
