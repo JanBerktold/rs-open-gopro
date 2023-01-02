@@ -1,5 +1,5 @@
 use std::collections::hash_map::Entry;
-use std::collections::{hash_map::OccupiedEntry, HashMap};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use btleplug::api::{
@@ -8,6 +8,7 @@ use btleplug::api::{
 };
 use btleplug::platform::Peripheral;
 use tokio::sync::mpsc::{Receiver, UnboundedReceiver};
+use tokio_stream::StreamExt;
 use uuid::Uuid;
 
 lazy_static::lazy_static! {
@@ -25,10 +26,74 @@ lazy_static::lazy_static! {
     };
 }
 
+// The OpCode for each OpenGopro BLE command.
+// See https://gopro.github.io/OpenGoPro/ble_2_0#commands.
+#[repr(u8)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum CommandID {
+    SetShutter = 0x01,
+    Sleep = 0x05,
+    SetDateTime = 0x0D,
+    GetDateTime = 0x0E,
+    SetLocalDateTime = 0x0F,
+    GetLocalDateTime = 0x10,
+    SetLiveStreamMode = 0x15,
+    APControl = 0x17,
+    HighlightMoment = 0x18,
+    GetHardwareInfo = 0x3C,
+    LoadPresetGroup = 0x3E,
+    LoadPreset = 0x40,
+    Analytics = 0x50,
+    OpenGoPro = 0x51,
+}
+
+impl TryFrom<u8> for CommandID {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            val if val == CommandID::SetShutter as u8 => Ok(CommandID::SetShutter),
+            // TODO
+            _ => Err(()),
+        }
+    }
+}
+
+#[repr(u8)]
+enum CommandResponseCode {
+    Success = 0,
+    Error = 1,
+    InvalidParameter = 2,
+    Unknown = 255,
+}
+
+impl From<u8> for CommandResponseCode {
+    fn from(value: u8) -> Self {
+        match value {
+            val if val == CommandResponseCode::Success as u8 => CommandResponseCode::Success,
+            val if val == CommandResponseCode::Error as u8 => CommandResponseCode::Error,
+            val if val == CommandResponseCode::InvalidParameter as u8 => {
+                CommandResponseCode::InvalidParameter
+            }
+            _ => CommandResponseCode::Unknown,
+        }
+    }
+}
+
+impl CommandResponseCode {
+    fn is_error(&self) -> bool {
+        match &self {
+            CommandResponseCode::Success => false,
+            _ => true,
+        }
+    }
+}
+
 pub struct Camera {
     remote: Peripheral,
 
-    command_notifications: Arc<tokio::sync::Mutex<HashMap<u8, tokio::sync::mpsc::Sender<Vec<u8>>>>>,
+    command_notifications:
+        Arc<tokio::sync::Mutex<HashMap<CommandID, tokio::sync::mpsc::Sender<Vec<u8>>>>>,
 }
 
 impl Camera {
@@ -48,11 +113,9 @@ impl Camera {
         p.subscribe(&c).await.unwrap();
 
         let command_notifications = Arc::new(tokio::sync::Mutex::new(HashMap::<
-            u8,
+            CommandID,
             tokio::sync::mpsc::Sender<Vec<u8>>,
         >::new()));
-
-        use tokio_stream::StreamExt;
 
         let moved_command_notifications = command_notifications.clone();
         // TODO: Can we avoid a tokio dependency?
@@ -63,7 +126,9 @@ impl Camera {
                     c if c == *COMMAND_RESP_CHARACTERISTIC => {
                         let mut notif = moved_command_notifications.lock().await;
 
-                        match notif.entry(msg.value[1]) {
+                        let command_id = CommandID::try_from(msg.value[1]).unwrap();
+
+                        match notif.entry(command_id) {
                             Entry::Occupied(sender) => {
                                 sender.get().send(msg.value).await.unwrap();
                                 sender.remove();
@@ -84,7 +149,7 @@ impl Camera {
         }
     }
 
-    async fn wait_command_response(&self, command: u8) -> Receiver<Vec<u8>> {
+    async fn wait_command_response(&self, command: CommandID) -> Receiver<Vec<u8>> {
         let (sender, receiver) = tokio::sync::mpsc::channel(1);
 
         {
@@ -97,7 +162,7 @@ impl Camera {
 }
 
 impl Camera {
-    pub async fn set_shutter(&mut self, on: bool) {
+    pub async fn set_shutter(&mut self, on: bool) -> Result<(), ()> {
         let c = self
             .remote
             .characteristics()
@@ -105,18 +170,29 @@ impl Camera {
             .find(|c| c.uuid == *COMMAND_REQ_CHARACTERISTIC)
             .unwrap();
 
-        let mut resp = self.wait_command_response(0x01).await;
+        let mut resp = self.wait_command_response(CommandID::SetShutter).await;
 
         self.remote
             .write(
                 &c,
-                &[0x03, 0x01, 0x01, if on { 0x01 } else { 0x00 }],
+                &[
+                    0x03,
+                    CommandID::SetShutter as u8,
+                    0x01,
+                    if on { 0x01 } else { 0x00 },
+                ],
                 btleplug::api::WriteType::WithoutResponse,
             )
             .await
             .unwrap();
 
-        let resp = resp.recv().await;
-        println!("got resp {:#?}", resp);
+        let resp = resp.recv().await.unwrap();
+        let code: CommandResponseCode = resp[2].into();
+
+        if !code.is_error() {
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 }

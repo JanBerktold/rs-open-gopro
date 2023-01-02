@@ -29,9 +29,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut camera = Camera::connect(camera).await;
 
     loop {
-        camera.set_shutter(true).await;
+        camera.set_shutter(true).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-        camera.set_shutter(false).await;
+        camera.set_shutter(false).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
     }
 
