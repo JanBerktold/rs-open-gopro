@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut peripheral = central.peripherals().await?;
 
     let camera = peripheral.pop().unwrap();
-    let camera = Camera::connect(camera).await;
+    let mut camera = Camera::connect(camera).await;
 
     loop {
         camera.set_shutter(true).await;
