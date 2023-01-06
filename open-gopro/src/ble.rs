@@ -7,7 +7,7 @@ use btleplug::api::{
     Characteristic, Peripheral as _, ScanFilter,
 };
 use btleplug::platform::Peripheral;
-use tokio::sync::mpsc::{Receiver, UnboundedReceiver};
+use tokio::sync::mpsc::Receiver;
 use tokio_stream::StreamExt;
 use uuid::Uuid;
 
