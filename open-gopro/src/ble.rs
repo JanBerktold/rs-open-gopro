@@ -11,6 +11,8 @@ use tokio::sync::mpsc::{Receiver, UnboundedReceiver};
 use tokio_stream::StreamExt;
 use uuid::Uuid;
 
+use crate::CameraControl;
+
 lazy_static::lazy_static! {
     // See https://gopro.github.io/OpenGoPro/ble_2_0#services-and-characteristics for these.
     static ref WIFI_ACCESS_POINT_SERVICE: Uuid =
@@ -53,6 +55,11 @@ impl TryFrom<u8> for CommandID {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             val if val == CommandID::SetShutter as u8 => Ok(CommandID::SetShutter),
+            val if val == CommandID::Sleep as u8 => Ok(CommandID::Sleep),
+            val if val == CommandID::SetDateTime as u8 => Ok(CommandID::SetDateTime),
+            val if val == CommandID::GetDateTime as u8 => Ok(CommandID::GetDateTime),
+            val if val == CommandID::SetLocalDateTime as u8 => Ok(CommandID::SetLocalDateTime),
+            val if val == CommandID::GetLocalDateTime as u8 => Ok(CommandID::GetLocalDateTime),
             // TODO
             _ => Err(()),
         }
@@ -92,6 +99,8 @@ impl CommandResponseCode {
 pub struct Camera {
     remote: Peripheral,
 
+    command_req: Characteristic,
+
     command_notifications:
         Arc<tokio::sync::Mutex<HashMap<CommandID, tokio::sync::mpsc::Sender<Vec<u8>>>>>,
 }
@@ -104,13 +113,15 @@ impl Camera {
             p.connect().await.unwrap();
         }
 
-        let c = p
-            .characteristics()
-            .into_iter()
+        let mut characteristics = p.characteristics().into_iter();
+        let command_resp = characteristics
             .find(|c| c.uuid == *COMMAND_RESP_CHARACTERISTIC)
             .unwrap();
+        let command_req = characteristics
+            .find(|c| c.uuid == *COMMAND_REQ_CHARACTERISTIC)
+            .unwrap();
 
-        p.subscribe(&c).await.unwrap();
+        p.subscribe(&command_resp).await.unwrap();
 
         let command_notifications = Arc::new(tokio::sync::Mutex::new(HashMap::<
             CommandID,
@@ -145,6 +156,7 @@ impl Camera {
 
         Self {
             remote: p,
+            command_req,
             command_notifications,
         }
     }
@@ -161,20 +173,14 @@ impl Camera {
     }
 }
 
-impl Camera {
-    pub async fn set_shutter(&mut self, on: bool) -> Result<(), ()> {
-        let c = self
-            .remote
-            .characteristics()
-            .into_iter()
-            .find(|c| c.uuid == *COMMAND_REQ_CHARACTERISTIC)
-            .unwrap();
-
+#[async_trait::async_trait]
+impl CameraControl for Camera {
+    async fn set_shutter(&mut self, on: bool) -> Result<(), ()> {
         let mut resp = self.wait_command_response(CommandID::SetShutter).await;
 
         self.remote
             .write(
-                &c,
+                &self.command_req,
                 &[
                     0x03,
                     CommandID::SetShutter as u8,

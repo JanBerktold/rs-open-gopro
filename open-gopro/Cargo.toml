@@ -6,6 +6,7 @@ edition = "2021"
 license = "MIT"
 
 [dependencies]
+async-trait = "0.1"
 btleplug = "0.10"
 uuid = "1"
 lazy_static = "1"
