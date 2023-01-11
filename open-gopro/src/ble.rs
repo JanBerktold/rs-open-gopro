@@ -60,7 +60,14 @@ impl TryFrom<u8> for CommandID {
             val if val == CommandID::GetDateTime as u8 => Ok(CommandID::GetDateTime),
             val if val == CommandID::SetLocalDateTime as u8 => Ok(CommandID::SetLocalDateTime),
             val if val == CommandID::GetLocalDateTime as u8 => Ok(CommandID::GetLocalDateTime),
-            // TODO
+            val if val == CommandID::SetLiveStreamMode as u8 => Ok(CommandID::SetLiveStreamMode),
+            val if val == CommandID::APControl as u8 => Ok(CommandID::APControl),
+            val if val == CommandID::HighlightMoment as u8 => Ok(CommandID::HighlightMoment),
+            val if val == CommandID::GetHardwareInfo as u8 => Ok(CommandID::GetHardwareInfo),
+            val if val == CommandID::LoadPresetGroup as u8 => Ok(CommandID::LoadPresetGroup),
+            val if val == CommandID::LoadPreset as u8 => Ok(CommandID::LoadPreset),
+            val if val == CommandID::Analytics as u8 => Ok(CommandID::Analytics),
+            val if val == CommandID::OpenGoPro as u8 => Ok(CommandID::OpenGoPro),
             _ => Err(()),
         }
     }
