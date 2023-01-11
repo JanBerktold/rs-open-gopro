@@ -1,4 +1,7 @@
 # rs-open-gopro
+[![Crates.io](https://img.shields.io/crates/v/open-gopro)](https://crates.io/crates/open-gopro)
+[![Documentation](https://docs.rs/open-gopro/badge.svg)](https://docs.rs/open-gopro)
+[![Crates.io](https://img.shields.io/crates/l/open-gopro)](LICENSE)
 
 A Rust crate that allows interacting with GoPro cameras via the [Open GoPro](https://gopro.github.io/OpenGoPro/) standard.
 
