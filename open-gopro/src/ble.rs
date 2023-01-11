@@ -2,10 +2,7 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use btleplug::api::{
-    bleuuid::{self, uuid_from_u16, BleUuid},
-    Characteristic, Peripheral as _, ScanFilter,
-};
+use btleplug::api::{bleuuid::uuid_from_u16, Characteristic, Peripheral as _, ScanFilter};
 use btleplug::platform::Peripheral;
 use tokio::sync::mpsc::Receiver;
 use tokio_stream::StreamExt;
@@ -24,7 +21,7 @@ lazy_static::lazy_static! {
     static ref COMMAND_RESP_CHARACTERISTIC: Uuid = Uuid::try_parse("b5f90073-aa8d-11e3-9046-0002a5d5c51b").unwrap();
 
     pub static ref GOPRO_SCANFILTER: ScanFilter = ScanFilter {
-        services: Vec::from([CONTROL_QUERY_SERVICE.clone()]),
+        services: Vec::from([*CONTROL_QUERY_SERVICE]),
     };
 }
 
@@ -182,7 +179,7 @@ impl Camera {
 
 #[async_trait::async_trait]
 impl CameraControl for Camera {
-    async fn set_shutter(&mut self, on: bool) -> Result<(), ()> {
+    async fn set_shutter(&mut self, on: bool) -> Result<(), crate::Error> {
         let mut resp = self.wait_command_response(CommandID::SetShutter).await;
 
         self.remote
@@ -196,8 +193,7 @@ impl CameraControl for Camera {
                 ],
                 btleplug::api::WriteType::WithoutResponse,
             )
-            .await
-            .unwrap();
+            .await?;
 
         let resp = resp.recv().await.unwrap();
         let code: CommandResponseCode = resp[2].into();
@@ -205,7 +201,7 @@ impl CameraControl for Camera {
         if !code.is_error() {
             Ok(())
         } else {
-            Err(())
+            unimplemented!();
         }
     }
 }

@@ -23,7 +23,7 @@ impl HttpCamera {
 
 #[async_trait::async_trait]
 impl CameraControl for HttpCamera {
-    async fn set_shutter(&mut self, on: bool) -> Result<(), ()> {
+    async fn set_shutter(&mut self, on: bool) -> Result<(), crate::Error> {
         unimplemented!()
     }
 }
