@@ -5,6 +5,7 @@ pub use ble::*;
 pub use http::*;
 
 #[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
 pub enum Error {
     #[error(transparent)]
     Bluetooth(#[from] btleplug::Error),
