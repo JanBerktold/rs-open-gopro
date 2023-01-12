@@ -3,7 +3,7 @@ use btleplug::{
     api::{Central, Peripheral as _, ScanFilter},
     platform::*,
 };
-use open_gopro::Camera;
+use open_gopro::BluetoothCamera;
 use std::error::Error;
 
 #[tokio::main]
@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut peripheral = central.peripherals().await?;
 
     let camera = peripheral.pop().unwrap();
-    let mut camera = Camera::connect(camera).await;
+    let mut camera = BluetoothCamera::connect(camera).await;
 
     loop {
         camera.set_shutter(true).await.unwrap();

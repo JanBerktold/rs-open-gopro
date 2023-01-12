@@ -12,6 +12,13 @@ pub enum Error {
 }
 
 #[async_trait::async_trait]
-pub trait CameraControl {
+pub trait CameraControl: private::Sealed {
     async fn set_shutter(&mut self, on: bool) -> Result<(), crate::Error>;
+}
+
+mod private {
+    pub trait Sealed {}
+
+    impl Sealed for crate::HttpCamera {}
+    impl Sealed for crate::BluetoothCamera {}
 }

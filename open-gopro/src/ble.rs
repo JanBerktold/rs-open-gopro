@@ -100,7 +100,7 @@ impl CommandResponseCode {
     }
 }
 
-pub struct Camera {
+pub struct BluetoothCamera {
     remote: Peripheral,
 
     command_req: Characteristic,
@@ -109,7 +109,7 @@ pub struct Camera {
         Arc<tokio::sync::Mutex<HashMap<CommandID, tokio::sync::mpsc::Sender<Vec<u8>>>>>,
 }
 
-impl Camera {
+impl BluetoothCamera {
     pub async fn connect(p: Peripheral) -> Self {
         p.discover_services().await.unwrap();
 
@@ -178,7 +178,7 @@ impl Camera {
 }
 
 #[async_trait::async_trait]
-impl CameraControl for Camera {
+impl CameraControl for BluetoothCamera {
     async fn set_shutter(&mut self, on: bool) -> Result<(), crate::Error> {
         let mut resp = self.wait_command_response(CommandID::SetShutter).await;
 
