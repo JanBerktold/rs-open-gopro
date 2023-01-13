@@ -204,4 +204,8 @@ impl CameraControl for BluetoothCamera {
             unimplemented!();
         }
     }
+
+    async fn keep_alive(&mut self) -> Result<(), crate::Error> {
+        unimplemented!();
+    }
 }

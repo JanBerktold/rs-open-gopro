@@ -35,5 +35,5 @@ async fn main() -> Result<(), Box<dyn Error>> {
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
     }
 
-    Ok(())
+    unreachable!();
 }

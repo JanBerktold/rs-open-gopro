@@ -12,3 +12,7 @@ btleplug = "0.10"
 [[example]]
 name = "wifi_credentials_via_ble"
 path = "wifi_credentials_via_ble.rs"
+
+[[example]]
+name = "shutter_via_usb"
+path = "shutter_via_usb.rs"
